@@ -1,36 +1,91 @@
+// #ifndef THREADS_H_
+// #define THREADS_H_
+// #define NULL_FUNC ((void (*)(int))-1)
+// // TODO: necessary includes, if any
+// #include "user/setjmp.h"
+// // TODO: necessary defines, if any
+
+
+// struct thread {
+//     void (*fp)(void *arg);
+//     void *arg;
+//     void *stack;
+//     void *stack_p;
+//     jmp_buf env; // for thread function
+//     int buf_set; //1: indicate jmp_buf (env) has been set, 0: indicate jmp_buf (env) not set
+//     int ID;
+//     struct thread *previous;
+//     struct thread *next;
+//     //struct thread *waiter;    // 紀錄是誰在 Join 我
+//     struct thread *waiter_list; // 指向第一個正在等我的 thread
+//     struct thread *next_waiter;
+//     int exited;
+
+//     // part 2
+//     void (*sig_handler[2])(int); // sig_handler[0] is for signo = 0, sig_handler[1] is for signo = 1
+//     int signo; // -1: no signal comes, 0: receive a signal signo = 0, 1: receive a signal signo = 1
+//     jmp_buf handler_env; // for signal handler function
+//     int handler_buf_set; //1: indicate jmp_buf (handler_env) has been set, 0: indicate jmp_buf (handler_env) not set
+//     int join_blocked ;
+//     int suspended;   // 1 : thread suspend, 0 : thread resume
+// };
+
+// struct thread *get_current_thread();
+// struct thread *thread_create(void (*f)(void *), void *arg);
+// void thread_add_runqueue(struct thread *t);
+// void thread_yield(void);
+// void dispatch(void);
+// void schedule(void);
+// void thread_exit(void);
+// void thread_start_threading(void);
+
+// // part 2
+// void thread_register_handler(int signo, void (*f)(int));
+// void thread_kill(struct thread *t, int signo);
+
+// void thread_suspend(struct thread *t);
+// void thread_resume(struct thread *t);
+// void thread_join(struct thread *t);
+// struct thread *thread_get_current(void);
+// #endif // THREADS_H_
 #ifndef THREADS_H_
 #define THREADS_H_
-#define NULL_FUNC ((void (*)(int))-1)
-// TODO: necessary includes, if any
-#include "user/setjmp.h"
-// TODO: necessary defines, if any
 
+#define NULL_FUNC ((void (*)(int))-1)
+#include "user/setjmp.h"
 
 struct thread {
     void (*fp)(void *arg);
     void *arg;
     void *stack;
     void *stack_p;
-    jmp_buf env; // for thread function
-    int buf_set; //1: indicate jmp_buf (env) has been set, 0: indicate jmp_buf (env) not set
+
+    jmp_buf env;          // normal thread context
+    int buf_set;          // 1 if env has been saved
+
     int ID;
     struct thread *previous;
     struct thread *next;
-    //struct thread *waiter;    // 紀錄是誰在 Join 我
-    struct thread *waiter_list; // 指向第一個正在等我的 thread
+
+    // join
+    struct thread *waiter_list;
     struct thread *next_waiter;
     int exited;
 
-    // part 2
-    void (*sig_handler[2])(int); // sig_handler[0] is for signo = 0, sig_handler[1] is for signo = 1
-    int signo; // -1: no signal comes, 0: receive a signal signo = 0, 1: receive a signal signo = 1
-    jmp_buf handler_env; // for signal handler function
-    int handler_buf_set; //1: indicate jmp_buf (handler_env) has been set, 0: indicate jmp_buf (handler_env) not set
-    int join_blocked ;
-    int suspended;   // 1 : thread suspend, 0 : thread resume
+    // signal
+    void (*sig_handler[2])(int);
+    int signo;            // -1 means no pending signal
+    jmp_buf handler_env;  // signal handler context
+    int handler_buf_set;  // 1 if handler_env has been saved
+    int handling_signal;  // 1 if thread is currently executing a signal handler
+
+    int join_blocked;
+    int suspended;
 };
 
 struct thread *get_current_thread();
+struct thread *thread_get_current(void);
+
 struct thread *thread_create(void (*f)(void *), void *arg);
 void thread_add_runqueue(struct thread *t);
 void thread_yield(void);
@@ -42,9 +97,8 @@ void thread_start_threading(void);
 // part 2
 void thread_register_handler(int signo, void (*f)(int));
 void thread_kill(struct thread *t, int signo);
-
 void thread_suspend(struct thread *t);
 void thread_resume(struct thread *t);
 void thread_join(struct thread *t);
-struct thread *thread_get_current(void);
+
 #endif // THREADS_H_
